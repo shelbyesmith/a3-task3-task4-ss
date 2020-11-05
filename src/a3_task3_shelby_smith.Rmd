@@ -1,0 +1,105 @@
+---
+title: "a3_task3_shelby_smith.Rmd"
+author: "Shelby Smith"
+date: "11/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(lubridate)
+library(here)
+library(janitor)
+library(kableExtra)
+urchin_data<-read.csv(here("data","urchins.csv"))%>% #read in the urchin data
+clean_names()
+```
+## 5.a Section 1: Size comparisons, purple and red urchins
+
+### 5.a.i Exploratory data visualization:
+
+```{r}
+ ggplot(data = urchin_data,
+        aes(x=size))+
+  geom_histogram(bins = 15)+ #makes a histogram & shrinks x-axis to portion with values in it
+  facet_wrap(~common_name)+ #splits into 2 graphs by common name
+  labs(title = "Exploratory Histogram: Size Comparisons of Purple and Red Urchins",
+       x= "Urchin Diameter (cm)",
+       y= "Number of Urchins")
+
+ggplot(data = urchin_data,
+       aes(x=common_name, y=size))+
+  geom_boxplot()+
+  labs(x="Urchin Species Common Name",
+       y= "Urchin Diameter (cm)",
+       title = "Exploratory Boxplot: Size Companisons of Purple and Red Urchins")
+```
+
+### 5.a.ii Descriptive Statistics Table
+
+```{r}
+urchin_prelim_stats<- urchin_data %>% 
+  group_by(common_name) %>% #tell r it's working with groups within the common_name column 
+  summarize(mean_size = mean(size), #label the name of the new column = function you want to use (on what data)
+            median_size = median(size),
+            sd_size = sd(size),
+            sample_size = n()) 
+  
+kbl(urchin_prelim_stats) %>% #use kableExtra package for good table viz in knitted doc
+  kable_paper("hover", full_width=F)
+
+#actual difference in mean urchin diameter between the species
+actual_difference <- urchin_prelim_stats$mean_size[2] - urchin_prelim_stats$mean_size[1]
+
+# Percent difference in mean urchin diameter between the species
+percent_difference<- ((urchin_prelim_stats$mean_size[2]-urchin_prelim_stats$mean_size[1])/urchin_prelim_stats$mean_size[2])*100
+```
+
+### 5.a.iii Summary of Exploratory Data Visualizations and Tables
+
+- The Red Urchin has a greater central tendency as compared to the more left skewed Purple Urchin histogram. 
+
+- Red Urchins' size has a greater data spread, confirmed by the greater standard deviation in the table. 
+
+- Contextually, although the mean diameter of the Red Urchin is 2.3 cm larger than the mean diameter of Purple Urchins, the Red Urchin is only 34% larger. 
+
+## 5.b.i Section 2: Explore purple urchin counts by site and year
+
+```{r}
+purple_urchins <- urchin_data %>% 
+  filter(common_name == "Purple Urchin") %>% 
+  mutate(date=mdy(date)) %>%  
+  #convert the date to date class "Date", actually replaces the original column 'date' with a new column 'date' but with the values in class 'Date'
+  mutate(year=year(date),
+         site_full= case_when(site == "NAPL" ~ "Naples Reef", 
+                   site == "AQUE" ~"Arroyo Quemado Reef", 
+                   site == "CARP" ~ "Carpinteria Reef", 
+                   site == "MOHK" ~ "Mohawk Reef", 
+                   site== "IVEE" ~ "Isla Vista Reef"))
+#Create a new column called site_full that contains the full name (not abbreviation) for each of the five sites
+```
+
+### 5.b.ii Summary Table to total number of purple urchins observed by site and year
+
+```{r}
+summary_stats_purple_urchin<- purple_urchins %>% 
+  group_by(year, site_full) %>% 
+  count(common_name) %>% 
+  rename(urchin_count=n)
+```
+### 5.b.iii Exploratory graph of counts of purple urchins recorded at each site over time for the years included in the study
+
+```{r}
+summary_stats_purple_urchin %>% 
+  ggplot(aes(x=year, y=urchin_count, color=site_full)) + 
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~site_full) +
+  labs(x="Year",
+       y= "Number of Urchins",
+       title = "Purple Urchin per Year")+
+  theme_minimal()
+```
+
+
+
